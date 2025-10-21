@@ -6,13 +6,39 @@ import logging
 import tempfile
 import PyPDF2
 from gtts import gTTS
-from groq import Groq
-from config import GROQ_TOKEN, GTTTS_MAX_CHUNK_LENGTH, GROQ_MAX_CHUNK_LENGTH, GROQ_MAX_TOKENS, GROQ_TEMPERATURE
+
+# Import Groq with error handling
+try:
+    from groq import Groq
+except ImportError as e:
+    print(f"Warning: Could not import Groq: {e}")
+    Groq = None
+try:
+    from config import GROQ_TOKEN, GTTTS_MAX_CHUNK_LENGTH, GROQ_MAX_CHUNK_LENGTH, GROQ_MAX_TOKENS, GROQ_TEMPERATURE
+except ImportError as e:
+    print(f"Warning: Could not import config: {e}")
+    GROQ_TOKEN = None
+    GTTTS_MAX_CHUNK_LENGTH = 5000
+    GROQ_MAX_CHUNK_LENGTH = 2000
+    GROQ_MAX_TOKENS = 2000
+    GROQ_TEMPERATURE = 0.7
 
 logger = logging.getLogger(__name__)
 
-# Initialize Groq client
-groq_client = Groq(api_key=GROQ_TOKEN)
+# Initialize Groq client - only if GROQ_TOKEN is available and valid
+groq_client = None
+if Groq and GROQ_TOKEN and GROQ_TOKEN.strip():
+    try:
+        groq_client = Groq(api_key=GROQ_TOKEN)
+        logger.info("Groq client initialized successfully")
+    except Exception as e:
+        logger.warning(f"Failed to initialize Groq client: {e}")
+        groq_client = None
+else:
+    if not Groq:
+        logger.warning("Groq library not available, Groq features will be disabled")
+    else:
+        logger.warning("GROQ_TOKEN not available, Groq features will be disabled")
 
 def extract_text_from_pdf(pdf_file_path):
     """Extract text from PDF file."""
@@ -59,6 +85,10 @@ def text_to_speech_gtts(text, output_path):
 
 def text_to_speech_groq(text, output_path):
     """Convert text to speech using Groq with llama-3.1-8b-instant model."""
+    if not groq_client:
+        logger.error("Groq client not initialized. Falling back to gTTS.")
+        return text_to_speech_gtts(text, output_path)
+    
     try:
         # Split text into chunks if it's too long
         chunks = [text[i:i+GROQ_MAX_CHUNK_LENGTH] for i in range(0, len(text), GROQ_MAX_CHUNK_LENGTH)]

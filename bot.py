@@ -24,6 +24,22 @@ def main() -> None:
     # Check if running on Railway (for health checks)
     if os.getenv('RAILWAY_ENVIRONMENT'):
         print("🚀 Running on Railway cloud platform")
+        print(f"Environment: {os.getenv('RAILWAY_ENVIRONMENT')}")
+    
+    # Validate environment variables
+    if not BOT_TOKEN:
+        print("❌ ERROR: BOT_TOKEN not found!")
+        print("Please set BOT_TOKEN in Railway environment variables")
+        return
+    
+    print(f"✅ Bot token found: {BOT_TOKEN[:10]}...")
+    
+    # Check for GROQ_TOKEN (optional)
+    from config import GROQ_TOKEN
+    if GROQ_TOKEN:
+        print(f"✅ Groq token found: {GROQ_TOKEN[:10]}...")
+    else:
+        print("⚠️  GROQ_TOKEN not found - Groq features will be disabled")
     
     # Create the Updater
     updater = Updater(BOT_TOKEN)
@@ -50,12 +66,19 @@ def main() -> None:
     print("Bot is starting...")
     print("Press Ctrl+C to stop the bot")
     
-    # Start the Bot
-    updater.start_polling()
+    try:
+        # Start the Bot
+        print("🔄 Starting polling...")
+        updater.start_polling()
+        print("✅ Bot is now running and polling for updates!")
 
-    # Run the bot until the user presses Ctrl-C or the process receives SIGINT,
-    # SIGTERM or SIGABRT
-    updater.idle()
+        # Run the bot until the user presses Ctrl-C or the process receives SIGINT,
+        # SIGTERM or SIGABRT
+        updater.idle()
+    except Exception as e:
+        print(f"❌ Error starting bot: {e}")
+        logger.error(f"Bot startup error: {e}")
+        raise
 
 if __name__ == '__main__':
     main()
