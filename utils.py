@@ -7,6 +7,17 @@ import tempfile
 import PyPDF2
 from gtts import gTTS
 
+# Clear any proxy environment variables that might interfere with Groq
+import os
+if 'HTTP_PROXY' in os.environ:
+    del os.environ['HTTP_PROXY']
+if 'HTTPS_PROXY' in os.environ:
+    del os.environ['HTTPS_PROXY']
+if 'http_proxy' in os.environ:
+    del os.environ['http_proxy']
+if 'https_proxy' in os.environ:
+    del os.environ['https_proxy']
+
 # Import Groq with error handling
 try:
     from groq import Groq
@@ -29,10 +40,15 @@ logger = logging.getLogger(__name__)
 groq_client = None
 if Groq and GROQ_TOKEN and GROQ_TOKEN.strip():
     try:
+        # Simple initialization with just API key
         groq_client = Groq(api_key=GROQ_TOKEN)
         logger.info("Groq client initialized successfully")
     except Exception as e:
-        logger.warning(f"Failed to initialize Groq client: {e}")
+        error_msg = str(e)
+        if "proxies" in error_msg:
+            logger.warning(f"Groq client proxy issue detected: {e}")
+        else:
+            logger.warning(f"Failed to initialize Groq client: {e}")
         groq_client = None
 else:
     if not Groq:
