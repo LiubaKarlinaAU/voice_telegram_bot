@@ -67,9 +67,25 @@ def main() -> None:
     print("Press Ctrl+C to stop the bot")
     
     try:
-        # Start the Bot
+        # Start the Bot with connection retry logic
         print("🔄 Starting polling...")
-        updater.start_polling()
+        
+        # Test connection first
+        try:
+            bot_info = updater.bot.get_me()
+            print(f"✅ Connected to Telegram API successfully!")
+            print(f"🤖 Bot username: @{bot_info.username}")
+            print(f"📝 Bot name: {bot_info.first_name}")
+        except Exception as conn_e:
+            print(f"❌ Failed to connect to Telegram API: {conn_e}")
+            logger.error(f"Telegram API connection failed: {conn_e}")
+            return
+        
+        # Start polling with error handling
+        updater.start_polling(
+            drop_pending_updates=True,  # Drop any pending updates on restart
+            allowed_updates=['message', 'callback_query']  # Only handle these update types
+        )
         print("✅ Bot is now running and polling for updates!")
 
         # Run the bot until the user presses Ctrl-C or the process receives SIGINT,

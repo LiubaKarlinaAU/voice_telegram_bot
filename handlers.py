@@ -379,4 +379,15 @@ def handle_message(update: Update, context: CallbackContext) -> None:
 
 def error_handler(update: Update, context: CallbackContext) -> None:
     """Log the error and send a telegram message to notify the developer."""
+    if update is None:
+        logger.warning(f'Update is None, error: {context.error}')
+        return
+    
     logger.warning(f'Update {update} caused error {context.error}')
+    
+    # Handle specific connection errors
+    error_msg = str(context.error)
+    if "RemoteDisconnected" in error_msg or "Connection aborted" in error_msg:
+        logger.error("Telegram API connection lost. Bot may need to restart.")
+    elif "urllib3 HTTPError" in error_msg:
+        logger.error("HTTP error with Telegram API. Check network connectivity.")
